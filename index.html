@@ -10,51 +10,33 @@ content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable
 <meta name="theme-color" content="#020617">
 
 <style>
-:root{
-  --bg:#020617;--card:#020617e6;--border:#1e293b;
-  --text:#e5e7eb;--muted:#94a3b8;
-  --accent:#22c55e;--danger:#ef4444;--info:#38bdf8;
-}
-*{box-sizing:border-box}
 body{
-  margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;
-  background:linear-gradient(180deg,#020617,#0f172a);
-  color:var(--text);min-height:100vh;
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;
+  background:#020617;
+  color:#e5e7eb;
 }
 .hidden{display:none}
 .container{max-width:420px;margin:auto;padding:24px}
 .card{
-  background:var(--card);border-radius:20px;padding:22px;
-  box-shadow:0 20px 40px rgba(0,0,0,.45);
-  border:1px solid var(--border);
+  background:#020617e6;
+  border-radius:18px;
+  padding:22px;
+  border:1px solid #1e293b;
 }
-h1,h2,h3{margin:0 0 12px}
-small{color:var(--muted)}
-input,select,textarea,button{
-  width:100%;padding:14px;margin-top:12px;
-  border-radius:14px;font-size:16px;
-  background:#020617;color:var(--text);
-  border:1px solid var(--border);
+button,input,select,textarea{
+  width:100%;margin-top:12px;padding:14px;
+  border-radius:12px;font-size:16px;
 }
-button{
-  background:linear-gradient(90deg,var(--accent),#16a34a);
-  color:#022c22;font-weight:700;border:none;
-}
-button.secondary{
-  background:linear-gradient(90deg,var(--info),#0ea5e9);
-}
-button.danger{
-  background:linear-gradient(90deg,var(--danger),#b91c1c);
-  color:#fff;
-}
+button{background:#22c55e;border:none;font-weight:700}
+button.danger{background:#ef4444;color:#fff}
 .code{
-  padding:12px;background:#020617;border-radius:12px;
-  margin-bottom:8px;border:1px dashed var(--border);
-  text-align:center;letter-spacing:1px;
+  padding:10px;border:1px dashed #334155;
+  margin-bottom:6px;text-align:center;
 }
 footer{
-  margin-top:26px;text-align:center;
-  font-size:12px;color:var(--muted);line-height:1.5;
+  text-align:center;margin-top:24px;
+  font-size:12px;color:#94a3b8;
 }
 </style>
 </head>
@@ -62,132 +44,127 @@ footer{
 
 <div class="container">
 
-<div class="card" id="roleSelect">
-  <h1>Partner Treat System</h1>
-  <small id="periodText"></small>
-  <button class="secondary" onclick="show('employeeLogin')">
-    Truy cập dành cho Nhân viên
-  </button>
-  <button class="secondary" onclick="show('adminLogin')">
-    Truy cập dành cho Quản lý
-  </button>
+<div class="card" id="home">
+  <h2>Partner Treat System</h2>
+  <div id="period"></div>
+  <button onclick="show('empLogin')">Nhân viên</button>
+  <button onclick="show('adminLogin')">Quản lý</button>
 </div>
 
-<div class="card hidden" id="employeeLogin">
-  <h2>Xác thực nhân viên</h2>
-  <input id="empName" placeholder="Họ và tên nhân viên">
+<div class="card hidden" id="empLogin">
+  <input id="empName" placeholder="Tên nhân viên">
   <select id="empType">
-    <option value="">Loại hình làm việc</option>
-    <option value="fulltime">Nhân viên Full-time</option>
-    <option value="parttime">Nhân viên Part-time</option>
+    <option value="">Loại</option>
+    <option value="fulltime">Full-time</option>
+    <option value="parttime">Part-time</option>
   </select>
-  <input id="empPin" type="password" placeholder="Mã PIN cá nhân">
-  <button onclick="loginEmployee()">Xác nhận & Truy cập</button>
-  <button class="danger" onclick="back()">Huỷ & Quay lại</button>
+  <input id="empPin" placeholder="PIN">
+  <button onclick="loginEmployee()">Truy cập</button>
+  <button class="danger" onclick="back()">Quay lại</button>
 </div>
 
-<div class="card hidden" id="employeeView">
-  <h2 id="empTitle"></h2>
-  <small>Mã Partner Treat cho kỳ hiện tại</small>
+<div class="card hidden" id="empView">
+  <h3 id="empTitle"></h3>
   <div id="empCodes"></div>
   <button class="danger" onclick="back()">Đăng xuất</button>
 </div>
 
 <div class="card hidden" id="adminLogin">
-  <h2>Xác thực quản lý</h2>
-  <input id="adminPin" type="password" placeholder="Mã PIN quản lý">
-  <button onclick="loginAdmin()">Vào bảng điều phối</button>
-  <button class="danger" onclick="back()">Huỷ & Quay lại</button>
+  <input id="adminPin" placeholder="PIN quản lý">
+  <button onclick="loginAdmin()">Vào hệ thống</button>
+  <button class="danger" onclick="back()">Quay lại</button>
 </div>
 
 <div class="card hidden" id="adminPanel">
-  <h2>Bảng điều phối Partner Treat</h2>
-  <small>Dán danh sách mã gốc (mỗi dòng 1 mã)</small>
-  <textarea id="sourceCodes" rows="7"></textarea>
-  <button onclick="distribute()">Phân bổ mã tự động</button>
+  <textarea id="codesInput" rows="7"
+  placeholder="Mỗi dòng 1 mã"></textarea>
+  <button onclick="distribute()">Phân bổ</button>
   <div id="adminResult"></div>
-  <button class="danger" onclick="back()">Đăng xuất quản lý</button>
+  <button class="danger" onclick="back()">Đăng xuất</button>
 </div>
 
 <footer>
-  © 2025 Partner Treat System<br>
-  Phát triển bởi <strong>Đào Đăng Tùng</strong>
+© 2025 Partner Treat System<br>
+Developed by <b>Đào Đăng Tùng</b>
 </footer>
 
 </div>
 
 <script>
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js");
-}
+/* ===== PERIOD ===== */
+const now = new Date();
+const periodKey = `${now.getFullYear()}-${now.getMonth()+1}`;
+document.getElementById("period").innerText = "Kỳ: " + periodKey;
 
-/* ===== DATA ===== */
-const baseEmployees=[
- {name:"Nguyễn Minh Hiếu",type:"fulltime",pin:"1111",need:10},
- {name:"Nguyễn Phương Anh",type:"fulltime",pin:"2222",need:10},
- {name:"Đào Đăng Tùng",type:"parttime",pin:"3333",need:5},
- {name:"Chu Thùy Linh",type:"parttime",pin:"4444",need:5}
-];
+/* ===== INIT DATA (KHÔNG GHI ĐÈ) ===== */
+let data = JSON.parse(localStorage.getItem("partnerTreat"));
 
-const now=new Date();
-const currentPeriod=`${now.getFullYear()}-${now.getMonth()+1}`;
-document.getElementById("periodText").innerText="Kỳ áp dụng: "+currentPeriod;
-
-let data=JSON.parse(localStorage.getItem("partnerTreat"));
-if(!data||data.period!==currentPeriod){
- data={period:currentPeriod,locked:false,
- employees:baseEmployees.map(e=>({...e,codes:[]}))};
- localStorage.setItem("partnerTreat",JSON.stringify(data));
+if(!data || data.period !== periodKey){
+  data = {
+    period: periodKey,
+    status: "new",
+    employees: [
+      {name:"Nguyễn Minh Hiếu",type:"fulltime",pin:"1111",need:10,codes:[]},
+      {name:"Nguyễn Phương Anh",type:"fulltime",pin:"2222",need:10,codes:[]},
+      {name:"Đào Đăng Tùng",type:"parttime",pin:"3333",need:5,codes:[]},
+      {name:"Chu Thùy Linh",type:"parttime",pin:"4444",need:5,codes:[]}
+    ]
+  };
+  localStorage.setItem("partnerTreat",JSON.stringify(data));
 }
 
 /* ===== UI ===== */
 function show(id){
- ["roleSelect","employeeLogin","employeeView","adminLogin","adminPanel"]
+ ["home","empLogin","empView","adminLogin","adminPanel"]
  .forEach(v=>document.getElementById(v).classList.add("hidden"));
  document.getElementById(id).classList.remove("hidden");
 }
-function back(){show("roleSelect")}
+function back(){show("home")}
 
-/* ===== LOGIN EMPLOYEE ===== */
+/* ===== EMP ===== */
 function loginEmployee(){
- const name=document.getElementById("empName").value.trim().toLowerCase();
- const type=document.getElementById("empType").value;
- const pin=document.getElementById("empPin").value;
+ const name=empName.value.trim().toLowerCase();
+ const type=empType.value;
+ const pin=empPin.value;
  const emp=data.employees.find(e=>e.name.toLowerCase()===name);
 
  if(!emp||emp.type!==type||emp.pin!==pin){
-  alert("Thông tin xác thực không hợp lệ");return;
+  alert("Thông tin không đúng");return;
  }
  if(!emp.codes.length){
-  alert("Kỳ này chưa được phân bổ Partner Treat");return;
+  alert("Chưa được cấp Partner Treat");return;
  }
 
- show("employeeView");
- document.getElementById("empTitle").innerText=`${emp.name} (${emp.type})`;
- const box=document.getElementById("empCodes");
- box.innerHTML="";
+ show("empView");
+ empTitle.innerText=emp.name;
+ empCodes.innerHTML="";
  emp.codes.forEach(c=>{
   const d=document.createElement("div");
   d.className="code";d.innerText=c;
-  box.appendChild(d);
+  empCodes.appendChild(d);
  });
 }
 
-/* ===== LOGIN ADMIN ===== */
+/* ===== ADMIN ===== */
 function loginAdmin(){
- const pin=document.getElementById("adminPin").value;
- if(pin!=="2005"){alert("Mã PIN quản lý không đúng");return;}
+ if(adminPin.value!=="2005"){alert("Sai PIN");return;}
  show("adminPanel");
- if(data.locked) showAdminResult();
+ if(data.status==="distributed") renderAdmin();
 }
 
-/* ===== DISTRIBUTE ===== */
 function distribute(){
- if(data.locked){alert("Kỳ này đã phân bổ");return;}
- const raw=document.getElementById("sourceCodes").value;
- let codes=[...new Set(raw.split(/\n+/).map(c=>c.trim()).filter(Boolean))];
+ if(data.status==="distributed"){
+  alert("Đã phân bổ cho kỳ này");return;
+ }
+
+ let codes=[...new Set(
+  codesInput.value.split(/\n+/).map(c=>c.trim()).filter(Boolean)
+ )];
+
  const need=data.employees.reduce((s,e)=>s+e.need,0);
- if(codes.length<need){alert("Số lượng mã không đủ");return;}
+ if(codes.length<need){
+  alert("Không đủ mã");return;
+ }
 
  for(let i=codes.length-1;i>0;i--){
   const j=Math.floor(Math.random()*(i+1));
@@ -200,22 +177,22 @@ function distribute(){
   idx+=e.need;
  });
 
- data.locked=true;
+ data.status="distributed";
+ data.distributedAt=Date.now();
  localStorage.setItem("partnerTreat",JSON.stringify(data));
- showAdminResult();
+ renderAdmin();
 }
 
-function showAdminResult(){
- const box=document.getElementById("adminResult");
- box.innerHTML="";
+function renderAdmin(){
+ adminResult.innerHTML="";
  data.employees.forEach(e=>{
-  const h=document.createElement("h3");
-  h.innerText=`${e.name} (${e.type})`;
-  box.appendChild(h);
+  const h=document.createElement("h4");
+  h.innerText=e.name;
+  adminResult.appendChild(h);
   e.codes.forEach(c=>{
    const d=document.createElement("div");
    d.className="code";d.innerText=c;
-   box.appendChild(d);
+   adminResult.appendChild(d);
   });
  });
 }
@@ -223,3 +200,4 @@ function showAdminResult(){
 
 </body>
 </html>
+
