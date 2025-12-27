@@ -1,1 +1,43 @@
+{
+  "period": "2025-1",
+  "status": "new",
+  "employees": [
+    {
+      "name": "Nguyễn Minh Hiếu",
+      "type": "fulltime",
+      "pin": "1111",
+      "need": 10,
+      "codes": [],
+      "received": false,
+      "receivedAt": null
+    },
+    {
+      "name": "Nguyễn Phương Anh",
+      "type": "fulltime",
+      "pin": "2222",
+      "need": 10,
+      "codes": [],
+      "received": false,
+      "receivedAt": null
+    },
+    {
+      "name": "Đào Đăng Tùng",
+      "type": "parttime",
+      "pin": "3333",
+      "need": 5,
+      "codes": [],
+      "received": false,
+      "receivedAt": null
+    },
+    {
+      "name": "Chu Thùy Linh",
+      "type": "parttime",
+      "pin": "4444",
+      "need": 5,
+      "codes": [],
+      "received": false,
+      "receivedAt": null
+    }
+  ]
+}
 
