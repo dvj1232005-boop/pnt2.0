@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Partner Treat System</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#020617">
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;
+  background:linear-gradient(180deg,#020617,#0f172a);
+  color:#fff;
+  min-height:100vh;
+}
+.hidden{display:none}
+.container{max-width:420px;margin:auto;padding:24px}
+.card{
+  background:#020617e6;
+  border-radius:18px;
+  padding:20px;
+  box-shadow:0 20px 40px rgba(0,0,0,.45);
+}
+h1,h2,h3{margin:0 0 12px}
+input,select,textarea,button{
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border-radius:12px;
+  border:none;
+  outline:none;
+  font-size:16px;
+}
+input,select,textarea{
+  background:#020617;
+  color:#fff;
+  border:1px solid #334155;
+}
+button{
+  background:linear-gradient(90deg,#22c55e,#16a34a);
+  color:#022c22;
+  font-weight:700;
+}
+button.danger{
+  background:linear-gradient(90deg,#ef4444,#b91c1c);
+  color:#fff;
+}
+.roleBtn{
+  margin-top:12px;
+  background:linear-gradient(90deg,#38bdf8,#0ea5e9);
+  color:#022c22;
+}
+.code{
+  padding:10px;
+  background:#020617;
+  border-radius:10px;
+  margin-bottom:8px;
+  border:1px solid #1e293b;
+  text-align:center;
+  letter-spacing:1px;
+}
+footer{
+  margin-top:24px;
+  text-align:center;
+  font-size:12px;
+  color:#64748b;
+  line-height:1.5;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- CHỌN VAI TRÒ -->
+<div class="card" id="roleSelect">
+  <h1>🍪 Partner Treat</h1>
+  <small id="periodText"></small>
+  <button class="roleBtn" onclick="show('employeeLogin')">👤 Nhân viên</button>
+  <button class="roleBtn" onclick="show('adminLogin')">🛠 Quản lý</button>
+</div>
+
+<!-- NHÂN VIÊN -->
+<div class="card hidden" id="employeeLogin">
+  <h2>Nhân viên</h2>
+  <input id="empName" placeholder="Tên nhân viên">
+  <select id="empType">
+    <option value="">-- Chọn loại --</option>
+    <option value="fulltime">Full time</option>
+    <option value="parttime">Part time</option>
+  </select>
+  <input id="empPin" type="password" placeholder="PIN cá nhân">
+  <button onclick="loginEmployee()">Xem Partner Treat</button>
+  <button class="danger" onclick="back()">Quay lại</button>
+</div>
+
+<!-- Hby <strong>Đào Đăng Tùng</strong>
+</footer>
+
+</div>
+
+<script>
+/* SERVICE WORKER */
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js");
+}
+
+/* ===== KỲ THÁNG (CHUẨN – KHÔNG RESET SAI) ===== */
+const now = new Date();
+const currentPeriod = `${now.getFullYear()}-${now.getMonth()+1}`;
+document.getElementById("periodText").innerText =
+  "Kỳ áp dụng: " + currentPeriod;
+
+/* ===== NHÂN VIÊN GỐC ===== */
+const baseEmployees = [
+ {name:"Nguyễn Minh Hiếu",type:"fulltime",pin:"1111",need:10},
+ {name:"Nguyễn Phương Anh",type:"fulltime",pin:"2222",need:10},
+ {name:"Đào Đăng Tùng",type:"parttime",pin:"3333",need:5},
+ {name:"Chu Thùy Linh",type:"parttime",pin:"4444",need:5}
+];
+
+/* ===== LOAD DATA (CHỈ RESET KHI SANG THÁNG) ===== */
+let data = JSON.parse(localStorage.getItem("partnerTreat"));
+
+if (!data || data.period !== currentPeriod) {
+  data = {
+    period: currentPeriod,
+    locked: false,
+    employees: baseEmployees.map(e => ({...e, codes: []}))
+  };
+  localStorage.setItem("partnerTreat", JSON.stringify(data));
+}
+
+/* ===== UI ===== */
+function show(id){
+ ["roleSelect","employeeLogin","employeeView","adminLogin","adminPanel"]
+ .forEach(v=>document.getElementById(v).classList.add("hidden"));
+ document.getElementById(id).classList.remove("hidden");
+}
+function back(){show("roleSelect")}
+
+/* ===== NHÂN VIÊN LOGIN ===== */
+function loginEmployee(){
+ const name = empName.value.trim().toLowerCase();
+ const type = empType.value;
+ const pin  = empPin.value;
+ const emp  = data.employees.find(e=>e.name.toLowerCase()===name);
+
+ if(!emp || emp.type!==type || emp.pin!==pin){
+  alert("Thông tin không đúng"); return;
+ }
+ if(!emp.codes.length){
+  alert("Tháng này chưa được phát mã"); return;
+ }
+
+ show("employeeView");
+ empTitle.innerText = emp.name + " (" + emp.type + ")";
+ empCodes.innerHTML="";
+ emp.codes.forEach(c=>{
+  const d=document.createElement("div");
+  d.className="code"; d.innerText=c;
+  empCodes.appendChild(d);
+ });
+}
+
+/* ===== QUẢN LÝ ===== */
+function loginAdmin(){
+ if(adminPin.value!=="2005"){ alert("Sai PIN"); return; }
+ show("adminPanel");
+ if(data.locked) showAdminResult();
+}
+
+function distribute(){
+ if(data.locked){ alert("Tháng này đã phân bổ"); return; }
+
+ let codes=[...new Set(sourceCodes.value.split(/\n+/)
+   .map(c=>c.trim()).filter(Boolean))];
+
+ const need=data.employees.reduce((s,e)=>s+e.need,0);
+ if(codes.length<need){
+  alert("Không đủ mã (cần "+need+")"); return;
+ }
+
+ for(let i=codes.length-1;i>0;i--){
+  const j=Math.floor(Math.random()*(i+1));
+  [codes[i],codes[j]]=[codes[j],codes[i]];
+ }
+
+ let idx=0;
+ data.employees.forEach(e=>{
+  e.codes=codes.slice(idx,idx+e.need);
+  idx+=e.need;
+ });
+
+ data.locked=true;
+ localStorage.setItem("partnerTreat",JSON.stringify(data));
+ showAdminResult();
+}
+
+function showAdminResult(){
+ adminResult.innerHTML="";
+ data.employees.forEach(e=>{
+  const h=document.createElement("h3");
+  h.innerText=e.name+" ("+e.type+")";
+  adminResult.appendChild(h);
+  e.codes.forEach(c=>{
+   const d=document.createElement("div");
+   d.className="code"; d.innerText=c;
+   adminResult.appendChild(d);
+  });
+ });
+}
+</script>
+
+</body>
+</html>
