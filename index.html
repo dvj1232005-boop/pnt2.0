@@ -6,9 +6,6 @@
 content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Partner Treat System</title>
 
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#020617">
-
 <style>
 body{
   margin:0;
@@ -30,6 +27,7 @@ input,select,textarea,button{
 }
 button{background:#22c55e;border:none;font-weight:700}
 button.danger{background:#ef4444;color:#fff}
+button:disabled{background:#334155;color:#94a3b8}
 .code{
   padding:10px;border:1px dashed #334155;
   margin-bottom:6px;text-align:center;
@@ -46,9 +44,9 @@ footer{
 
 <div class="card" id="home">
   <h2>Partner Treat System</h2>
-  <div id="period"></div>
-  <button onclick="show('empLogin')">Nhân viên</button>
-  <button onclick="show('adminLogin')">Quản lý</button>
+  <div id="period">Đang tải dữ liệu…</div>
+  <button id="empBtn" disabled onclick="show('empLogin')">Nhân viên</button>
+  <button id="adminBtn" disabled onclick="show('adminLogin')">Quản lý</button>
 </div>
 
 <div class="card hidden" id="empLogin">
@@ -66,7 +64,9 @@ footer{
 <div class="card hidden" id="empView">
   <h3 id="empTitle"></h3>
   <div id="empCodes"></div>
-  <button id="confirmBtn" onclick="confirmReceived()">Xác nhận đã nhận</button>
+  <button id="confirmBtn" onclick="confirmReceived()" disabled>
+    Xác nhận đã nhận
+  </button>
   <button class="danger" onclick="back()">Đăng xuất</button>
 </div>
 
@@ -78,14 +78,14 @@ footer{
 
 <div class="card hidden" id="adminPanel">
   <textarea id="codesInput" rows="7" placeholder="Mỗi dòng 1 mã"></textarea>
-  <button onclick="distribute()">Phân bổ mã</button>
+  <button id="distributeBtn" disabled onclick="distribute()">Phân bổ mã</button>
   <div id="adminResult"></div>
   <button class="danger" onclick="back()">Đăng xuất</button>
 </div>
 
 <footer>
 © 2025 Partner Treat System<br>
-Developed by <b>Đào Đăng Tùng</b>
+Phát triển bởi <b>Đào Đăng Tùng</b>
 </footer>
 
 </div>
@@ -95,11 +95,14 @@ Developed by <b>Đào Đăng Tùng</b>
 const GITHUB_OWNER = "dvj1232005-boop";
 const GITHUB_REPO  = "pnt2.0";
 const GITHUB_FILE  = "data.json";
-const GITHUB_TOKEN = "PASTE_TOKEN_HERE"; // 🔴 DÁN TOKEN VÀO ĐÂY
 
-/* ================== DATA ================== */
+/* 🔴 DÁN TOKEN CỦA BẠN VÀO ĐÂY */
+const GITHUB_TOKEN = "DAN_TOKEN_CUA_BAN_VAO_DAY";
+
+/* ================== STATE ================== */
 let data = null;
 let fileSha = null;
+let ready = false;
 
 /* ================== LOAD DATA ================== */
 async function loadData(){
@@ -107,17 +110,24 @@ async function loadData(){
     `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE}`,
     { headers:{ Authorization:`token ${GITHUB_TOKEN}` } }
   );
+
+  if(!res.ok) throw new Error("Không tải được dữ liệu GitHub");
+
   const json = await res.json();
   fileSha = json.sha;
   data = JSON.parse(atob(json.content));
 
-  await checkNewMonth();
+  await autoResetMonth();
 
   document.getElementById("period").innerText = "Kỳ: " + data.period;
+  empBtn.disabled = false;
+  adminBtn.disabled = false;
+  distributeBtn.disabled = false;
+  ready = true;
 }
 
 /* ================== AUTO RESET MONTH ================== */
-async function checkNewMonth(){
+async function autoResetMonth(){
   const now = new Date();
   const currentPeriod = `${now.getFullYear()}-${now.getMonth()+1}`;
 
@@ -129,9 +139,7 @@ async function checkNewMonth(){
       e.received = false;
       e.receivedAt = null;
     });
-
     await saveToGitHub("Tự động reset sang kỳ " + currentPeriod);
-    alert("Hệ thống đã tự reset sang tháng mới");
   }
 }
 
@@ -141,13 +149,13 @@ async function saveToGitHub(message){
     JSON.stringify(data, null, 2)
   )));
 
-  await fetch(
+  const res = await fetch(
     `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE}`,
     {
       method: "PUT",
       headers:{
         Authorization: `token ${GITHUB_TOKEN}`,
-        "Content-Type":"application/json"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         message,
@@ -156,6 +164,8 @@ async function saveToGitHub(message){
       })
     }
   );
+
+  if(!res.ok) throw new Error("Ghi GitHub thất bại");
 
   await loadData();
 }
@@ -170,62 +180,67 @@ function back(){show("home")}
 
 /* ================== EMPLOYEE ================== */
 function loginEmployee(){
- const name=empName.value.trim().toLowerCase();
- const type=empType.value;
- const pin=empPin.value;
+ if(!ready) return;
 
- const emp=data.employees.find(e=>e.name.toLowerCase()===name);
+ const name = empName.value.trim().toLowerCase();
+ const type = empType.value;
+ const pin  = empPin.value;
 
- if(!emp||emp.type!==type||emp.pin!==pin){
-  alert("Thông tin không đúng");return;
+ const emp = data.employees.find(e=>e.name.toLowerCase()===name);
+
+ if(!emp || emp.type!==type || emp.pin!==pin){
+  alert("Thông tin không đúng"); return;
  }
  if(!emp.codes.length){
-  alert("Chưa được cấp Partner Treat");return;
+  alert("Chưa được cấp mã"); return;
  }
 
  show("empView");
- empTitle.innerText=emp.name;
- empCodes.innerHTML="";
+ empTitle.innerText = emp.name;
+ empCodes.innerHTML = "";
  emp.codes.forEach(c=>{
   const d=document.createElement("div");
-  d.className="code";d.innerText=c;
+  d.className="code"; d.innerText=c;
   empCodes.appendChild(d);
  });
 
- confirmBtn.disabled=emp.received;
- confirmBtn.innerText=emp.received?"Đã xác nhận ✔":"Xác nhận đã nhận";
+ confirmBtn.disabled = emp.received;
 }
 
 /* ================== CONFIRM ================== */
 async function confirmReceived(){
- const name=empTitle.innerText;
- const emp=data.employees.find(e=>e.name===name);
- if(!emp||emp.received)return;
+ if(!ready) return;
 
- emp.received=true;
- emp.receivedAt=new Date().toISOString();
- await saveToGitHub(`Nhân viên ${emp.name} đã xác nhận`);
- alert("Đã xác nhận & đồng bộ");
+ const name = empTitle.innerText;
+ const emp = data.employees.find(e=>e.name===name);
+ if(emp.received) return;
+
+ emp.received = true;
+ emp.receivedAt = new Date().toISOString();
+ await saveToGitHub(`Nhân viên ${emp.name} xác nhận đã nhận`);
+ alert("Đã xác nhận");
 }
 
 /* ================== ADMIN ================== */
 function loginAdmin(){
- if(adminPin.value!=="2005"){alert("Sai PIN");return;}
+ if(adminPin.value!=="2005"){
+  alert("Sai PIN"); return;
+ }
  show("adminPanel");
  renderAdmin();
 }
 
 async function distribute(){
- if(data.status==="distributed"){
-  alert("Đã phân bổ kỳ này");return;
- }
+ if(!ready) return;
 
  let codes=[...new Set(
   codesInput.value.split(/\n+/).map(c=>c.trim()).filter(Boolean)
  )];
 
- let need=data.employees.reduce((s,e)=>s+e.need,0);
- if(codes.length<need){alert("Không đủ mã");return;}
+ let need = data.employees.reduce((s,e)=>s+e.need,0);
+ if(codes.length < need){
+  alert("Không đủ mã"); return;
+ }
 
  for(let i=codes.length-1;i>0;i--){
   const j=Math.floor(Math.random()*(i+1));
@@ -234,13 +249,13 @@ async function distribute(){
 
  let idx=0;
  data.employees.forEach(e=>{
-  e.codes=codes.slice(idx,idx+e.need);
-  idx+=e.need;
+  e.codes = codes.slice(idx, idx+e.need);
+  idx += e.need;
  });
 
  data.status="distributed";
  await saveToGitHub("Quản lý phân bổ Partner Treat");
- alert("Đã phân bổ & đồng bộ");
+ alert("Đã phân bổ");
 }
 
 /* ================== RENDER ADMIN ================== */
@@ -250,19 +265,18 @@ function renderAdmin(){
   const h=document.createElement("h4");
   h.innerText = e.name + (e.received?" ✅":" ⏳");
   adminResult.appendChild(h);
-  e.codes.forEach(c=>{
-   const d=document.createElement("div");
-   d.className="code";d.innerText=c;
-   adminResult.appendChild(d);
-  });
  });
 }
 
 /* ================== INIT ================== */
-loadData();
+loadData().catch(err=>{
+ alert("Lỗi tải dữ liệu. Kiểm tra token GitHub.");
+ console.error(err);
+});
 </script>
 
 </body>
 </html>
+
 
 
