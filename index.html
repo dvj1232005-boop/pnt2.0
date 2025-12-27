@@ -13,7 +13,7 @@ content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable
 body{
   margin:0;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;
-  background:#020617;
+  background:linear-gradient(180deg,#020617,#0f172a);
   color:#e5e7eb;
 }
 .hidden{display:none}
@@ -24,7 +24,7 @@ body{
   padding:22px;
   border:1px solid #1e293b;
 }
-button,input,select,textarea{
+input,select,textarea,button{
   width:100%;margin-top:12px;padding:14px;
   border-radius:12px;font-size:16px;
 }
@@ -58,27 +58,27 @@ footer{
     <option value="fulltime">Full-time</option>
     <option value="parttime">Part-time</option>
   </select>
-  <input id="empPin" placeholder="PIN">
-  <button onclick="loginEmployee()">Truy cập</button>
+  <input id="empPin" type="password" placeholder="PIN">
+  <button onclick="loginEmployee()">Xem Partner Treat</button>
   <button class="danger" onclick="back()">Quay lại</button>
 </div>
 
 <div class="card hidden" id="empView">
   <h3 id="empTitle"></h3>
   <div id="empCodes"></div>
+  <button id="confirmBtn" onclick="confirmReceived()">Xác nhận đã nhận</button>
   <button class="danger" onclick="back()">Đăng xuất</button>
 </div>
 
 <div class="card hidden" id="adminLogin">
-  <input id="adminPin" placeholder="PIN quản lý">
+  <input id="adminPin" type="password" placeholder="PIN quản lý">
   <button onclick="loginAdmin()">Vào hệ thống</button>
   <button class="danger" onclick="back()">Quay lại</button>
 </div>
 
 <div class="card hidden" id="adminPanel">
-  <textarea id="codesInput" rows="7"
-  placeholder="Mỗi dòng 1 mã"></textarea>
-  <button onclick="distribute()">Phân bổ</button>
+  <textarea id="codesInput" rows="7" placeholder="Mỗi dòng 1 mã"></textarea>
+  <button onclick="distribute()">Phân bổ mã</button>
   <div id="adminResult"></div>
   <button class="danger" onclick="back()">Đăng xuất</button>
 </div>
@@ -91,29 +91,76 @@ Developed by <b>Đào Đăng Tùng</b>
 </div>
 
 <script>
-/* ===== PERIOD ===== */
-const now = new Date();
-const periodKey = `${now.getFullYear()}-${now.getMonth()+1}`;
-document.getElementById("period").innerText = "Kỳ: " + periodKey;
+/* ================== GITHUB CONFIG ================== */
+const GITHUB_OWNER = "dvj1232005-boop";
+const GITHUB_REPO  = "pnt2.0";
+const GITHUB_FILE  = "data.json";
+const GITHUB_TOKEN = "PASTE_TOKEN_HERE"; // 🔴 DÁN TOKEN VÀO ĐÂY
 
-/* ===== INIT DATA (KHÔNG GHI ĐÈ) ===== */
-let data = JSON.parse(localStorage.getItem("partnerTreat"));
+/* ================== DATA ================== */
+let data = null;
+let fileSha = null;
 
-if(!data || data.period !== periodKey){
-  data = {
-    period: periodKey,
-    status: "new",
-    employees: [
-      {name:"Nguyễn Minh Hiếu",type:"fulltime",pin:"1111",need:10,codes:[]},
-      {name:"Nguyễn Phương Anh",type:"fulltime",pin:"2222",need:10,codes:[]},
-      {name:"Đào Đăng Tùng",type:"parttime",pin:"3333",need:5,codes:[]},
-      {name:"Chu Thùy Linh",type:"parttime",pin:"4444",need:5,codes:[]}
-    ]
-  };
-  localStorage.setItem("partnerTreat",JSON.stringify(data));
+/* ================== LOAD DATA ================== */
+async function loadData(){
+  const res = await fetch(
+    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE}`,
+    { headers:{ Authorization:`token ${GITHUB_TOKEN}` } }
+  );
+  const json = await res.json();
+  fileSha = json.sha;
+  data = JSON.parse(atob(json.content));
+
+  await checkNewMonth();
+
+  document.getElementById("period").innerText = "Kỳ: " + data.period;
 }
 
-/* ===== UI ===== */
+/* ================== AUTO RESET MONTH ================== */
+async function checkNewMonth(){
+  const now = new Date();
+  const currentPeriod = `${now.getFullYear()}-${now.getMonth()+1}`;
+
+  if(data.period !== currentPeriod){
+    data.period = currentPeriod;
+    data.status = "new";
+    data.employees.forEach(e=>{
+      e.codes = [];
+      e.received = false;
+      e.receivedAt = null;
+    });
+
+    await saveToGitHub("Tự động reset sang kỳ " + currentPeriod);
+    alert("Hệ thống đã tự reset sang tháng mới");
+  }
+}
+
+/* ================== SAVE TO GITHUB ================== */
+async function saveToGitHub(message){
+  const content = btoa(unescape(encodeURIComponent(
+    JSON.stringify(data, null, 2)
+  )));
+
+  await fetch(
+    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE}`,
+    {
+      method: "PUT",
+      headers:{
+        Authorization: `token ${GITHUB_TOKEN}`,
+        "Content-Type":"application/json"
+      },
+      body: JSON.stringify({
+        message,
+        content,
+        sha: fileSha
+      })
+    }
+  );
+
+  await loadData();
+}
+
+/* ================== UI ================== */
 function show(id){
  ["home","empLogin","empView","adminLogin","adminPanel"]
  .forEach(v=>document.getElementById(v).classList.add("hidden"));
@@ -121,11 +168,12 @@ function show(id){
 }
 function back(){show("home")}
 
-/* ===== EMP ===== */
+/* ================== EMPLOYEE ================== */
 function loginEmployee(){
  const name=empName.value.trim().toLowerCase();
  const type=empType.value;
  const pin=empPin.value;
+
  const emp=data.employees.find(e=>e.name.toLowerCase()===name);
 
  if(!emp||emp.type!==type||emp.pin!==pin){
@@ -143,28 +191,41 @@ function loginEmployee(){
   d.className="code";d.innerText=c;
   empCodes.appendChild(d);
  });
+
+ confirmBtn.disabled=emp.received;
+ confirmBtn.innerText=emp.received?"Đã xác nhận ✔":"Xác nhận đã nhận";
 }
 
-/* ===== ADMIN ===== */
+/* ================== CONFIRM ================== */
+async function confirmReceived(){
+ const name=empTitle.innerText;
+ const emp=data.employees.find(e=>e.name===name);
+ if(!emp||emp.received)return;
+
+ emp.received=true;
+ emp.receivedAt=new Date().toISOString();
+ await saveToGitHub(`Nhân viên ${emp.name} đã xác nhận`);
+ alert("Đã xác nhận & đồng bộ");
+}
+
+/* ================== ADMIN ================== */
 function loginAdmin(){
  if(adminPin.value!=="2005"){alert("Sai PIN");return;}
  show("adminPanel");
- if(data.status==="distributed") renderAdmin();
+ renderAdmin();
 }
 
-function distribute(){
+async function distribute(){
  if(data.status==="distributed"){
-  alert("Đã phân bổ cho kỳ này");return;
+  alert("Đã phân bổ kỳ này");return;
  }
 
  let codes=[...new Set(
   codesInput.value.split(/\n+/).map(c=>c.trim()).filter(Boolean)
  )];
 
- const need=data.employees.reduce((s,e)=>s+e.need,0);
- if(codes.length<need){
-  alert("Không đủ mã");return;
- }
+ let need=data.employees.reduce((s,e)=>s+e.need,0);
+ if(codes.length<need){alert("Không đủ mã");return;}
 
  for(let i=codes.length-1;i>0;i--){
   const j=Math.floor(Math.random()*(i+1));
@@ -178,16 +239,16 @@ function distribute(){
  });
 
  data.status="distributed";
- data.distributedAt=Date.now();
- localStorage.setItem("partnerTreat",JSON.stringify(data));
- renderAdmin();
+ await saveToGitHub("Quản lý phân bổ Partner Treat");
+ alert("Đã phân bổ & đồng bộ");
 }
 
+/* ================== RENDER ADMIN ================== */
 function renderAdmin(){
  adminResult.innerHTML="";
  data.employees.forEach(e=>{
   const h=document.createElement("h4");
-  h.innerText=e.name;
+  h.innerText = e.name + (e.received?" ✅":" ⏳");
   adminResult.appendChild(h);
   e.codes.forEach(c=>{
    const d=document.createElement("div");
@@ -196,8 +257,12 @@ function renderAdmin(){
   });
  });
 }
+
+/* ================== INIT ================== */
+loadData();
 </script>
 
 </body>
 </html>
+
 
